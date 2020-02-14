@@ -2,3 +2,4 @@ twitter_consumer_key.secret
 twitter_access_token.secret
 usercred.secret
 clientcred.secret
+toots.db
