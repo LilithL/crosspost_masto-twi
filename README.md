@@ -3,12 +3,14 @@ A simple crosspost script that crosspost toots from mastodon to twitter.
 
 ## Usage
 
-```crosspost_masto-twi.py print-conf-to-file```: 
+```main.py print-conf-to-file```: 
 Write a default config file to the disk.
 
-```crosspost_masto-twi.py run```: Run the main loop. by default it checks every 20 seconds if new toots were posted and crossposts them to twitter.
+```main.py run```: Run the main loop. by default it checks every 20 seconds if new toots were posted and crossposts them to twitter.
 
-You can use ```--help``` to print the commands and possible options in standard output.
+```main.py init-db```: Initialise the database
+
+You can use ```--help``` to print the commands and possible options.
 
 ## Setup
 

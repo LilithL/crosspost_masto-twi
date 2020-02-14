@@ -4,7 +4,9 @@ import time
 
 import click
 import twitter
-import MastoCrosspostUtils
+
+import Masto_crosspost_utils
+import models_db
 
 # The global var that'll contain the parameters from the config file
 PARAMS = {}
@@ -13,6 +15,17 @@ PARAMS = {}
 @click.group()
 def cli():
     pass
+
+
+def read_conf(conf_file):
+    global PARAMS
+    try:
+        configParser = configparser.RawConfigParser()
+        configParser.read(conf_file)
+    except Exception as e:
+        print(e)
+        exit(1)
+    PARAMS = configParser._sections['config-crosspost']
 
 
 def import_json_file(file_name):
@@ -26,7 +39,7 @@ def import_json_file(file_name):
         exit()
 
 
-def tweet_parser(twi_api, texte, toot_cont_warn, toot_media=None):
+def tweet_parser(twi_api, texte, toot_cont_warn, last_tweet_id=None, toot_media=None):
     """ Construct tweets based on a toot content and cw and tweet it
     """
     if toot_cont_warn != "":
@@ -41,18 +54,8 @@ def tweet_parser(twi_api, texte, toot_cont_warn, toot_media=None):
     else:
         url_lenght = 0
 
-    # If a toot with the thread indicator has been posted, check if the last posted tweet contain the same content
-    # warning and set the last_tweet_id to the last tweet
-    if any(word in toot_cont_warn.lower() for word in PARAMS['thread_indicator'].split(',')):
-        if formated_cw in twi_api.GetUserTimeline()[0].text:
-            last_tweet_id = twi_api.GetUserTimeline()[0].id
-        else:
-            last_tweet_id = None
-    else:
-        last_tweet_id = None
-
     if not any(word in toot_cont_warn.lower() for word in PARAMS['no_cp_indicators'].split(',')):
-        texte = MastoCrosspostUtils.process_toot_to_chunks(
+        texte = Masto_crosspost_utils.process_toot_to_chunks(
             texte, int(PARAMS['twi_limit']) - len(formated_cw) - url_lenght)
         for contenu in texte:
             try:
@@ -61,36 +64,43 @@ def tweet_parser(twi_api, texte, toot_cont_warn, toot_media=None):
             except Exception as e:
                 print(e)
                 return
-    return
+    return last_tweet_id
 
 
 def tweet_last_toots(mastodon_utils, twi_api, acct):
     """ Get the last toots from a given account id and post it on twitter
     """
+    # Access the database, if it fails stop the program
     try:
-        with open(PARAMS['last_toot_file'], 'r') as f:
-            l_toot_json = json.load(f)
-        if str(acct.id) not in l_toot_json:
-            l_toot_json[str(acct.id)] = mastodon_utils.scrape_toots(
-                acct.id, None)[-1]['id']
+        database = models_db.Session_db(PARAMS['db_file'])
     except Exception as e:
         print(e)
-        l_toot_json = {}
-        l_toot_json[str(acct.id)] = mastodon_utils.scrape_toots(
-            acct.id, None)[-1]['id']
+        exit()
+
+    # Get last toot from database, if it fails create a crossposted_toots object with default values
+    l_toot = database.get_last_toot(acct.id)
+    if l_toot == None:
+        database.add_toot(acct['id'], mastodon_utils.scrape_toots(acct.id, None)[-1]['id'], None)
+        l_toot = database.get_last_toot(acct.id)
+
+    # Get the last toots on the target account since the last toot id given in l_toot
     last_toots = mastodon_utils.scrape_toots(
-        acct.id, l_toot_json[str(acct.id)])
+        acct.id, l_toot.toot_id)
+
     if len(last_toots) > 0:
-        if l_toot_json[str(acct.id)] != last_toots[-1].id:
-            for new_toot in last_toots:
-                new_toot_media = []
-                for media in new_toot['media_attachments']:
-                    new_toot_media.append(media['remote_url'])
-                tweet_parser(twi_api, new_toot['content'],
-                             new_toot['spoiler_text'], new_toot_media)
-                l_toot_json[str(acct.id)] = new_toot.id
-    with open(PARAMS['last_toot_file'], 'w') as f:
-        json.dump(l_toot_json, f)
+        for new_toot in last_toots:
+            new_toot_media = []
+
+            # Get the tweet id to answer to
+            tweet_id = database.get_tweet_id(new_toot['in_reply_to_id'])
+
+            # Get the medias in the toot
+            for media in new_toot['media_attachments']:
+                new_toot_media.append(media['remote_url'])
+
+            tweet_id = tweet_parser(twi_api, new_toot['content'],
+                                    new_toot['spoiler_text'],  tweet_id, new_toot_media)
+            database.add_toot(acct['id'], new_toot['id'], tweet_id)
     return
 
 
@@ -100,17 +110,9 @@ def tweet_last_toots(mastodon_utils, twi_api, acct):
 def run(conf, delay):
     """ Run the crosspost bot main loop 
     """
-    global PARAMS
-    try:
-        configParser = configparser.RawConfigParser()
-        configParser.read(conf)
-    except Exception as e:
-        print(e)
-        exit(1)
-    PARAMS = configParser._sections['config-crosspost']
-
+    read_conf(conf)
     usercred_masto = import_json_file(PARAMS['masto_usercred_file'])
-    mastodon_utils = MastoCrosspostUtils.MastoCrosspostUtils(
+    mastodon_utils = Masto_crosspost_utils.MastoCrosspostUtils(
         PARAMS['masto_clientcred_file'], usercred_masto['token'], usercred_masto['url'])
 
     accesstoken_twitter = import_json_file(PARAMS['twi_accesstoken_file'])
@@ -146,8 +148,6 @@ def print_conf_to_file(output):
                     "twi_limit = 280\n\n" +
                     "# List of no-crosspost identificator (use \",\" as a delimiter)\n" +
                     "no_cp_indicators =nocp,lb,~\n\n" +
-                    "# List of thread identificators (use \",\" as a delimiter)\n" +
-                    "thread_indicator = thread\n\n" +
                     "# Twitter cw formating\n" +
                     "twi_cw_default = [{}]\\n\\n \n\n" +
                     "# The file that will contain the info about the last toot processed by the crossposter\n" +
@@ -161,10 +161,17 @@ def print_conf_to_file(output):
                     "masto_clientcred_file = clientcred.secret\n" +
                     "masto_usercred_file = usercred.secret\n\n" +
                     "# The sqlite3 file name\n" +
-                    "sqlite_file = toots.db")
+                    "db_file = toots.sqlite3")
     except Exception as e:
         print(e)
         exit(1)
+
+
+@cli.command()
+@click.option('-c', '--conf', type=click.Path(), default='param.conf', help='The path to the configuration file')
+def init_db(conf):
+    read_conf(conf)
+    models_db.init(PARAMS['db_file'])
 
 
 if __name__ == "__main__":
