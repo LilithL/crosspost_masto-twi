@@ -69,20 +69,31 @@ def strip_tags(content):
     for i in tags:
         i.replace_with(i.get_text())
 
+    # replace emojis with their utf-8 equivalent or text for custom ones
+    tags = soup.select('.emojione')
+    for i in tags:
+        i.replace_with(i['alt'])
+
     # Replace line break with \n
     line_break = soup.find_all('br')
     for i in line_break:
-        i.replace_with('\n')
+        i.replace_with('\n ')
+
+    # Replace p with \n\n
+    line_break = soup.find_all('p')
+    if len(line_break) > 1:
+        for i in line_break[1:]:
+            i.replace_with('\n\n '+i.get_text())
 
     # strip html tags, chr(31) joins text in different html tags
-    return soup.get_text('\n').strip()
+    return soup.get_text()
 
 
 def str_to_chunks(string, size):
     """ Construct a list of strings with a given max size for each strings.
     """
     res = [""]
-    words = string.split()
+    words = string.split(' ')
     i = 0
     while len(words):
         if len(res[i]) + len(words[0]) < size:
