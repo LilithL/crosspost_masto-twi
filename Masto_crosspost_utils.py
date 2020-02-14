@@ -40,7 +40,7 @@ def process_toot_to_chunks(toot_content, size):
 def strip_tags(content):
     """ Strip html tags from a given text (ere, we use it to strip tags from toots)
     """
-    soup = BeautifulSoup(html.unescape(content), 'html.parser')
+    soup = BeautifulSoup(content, 'html.parser')
 
     # Removes cards
     tags = soup.select('.h-card')
@@ -68,6 +68,11 @@ def strip_tags(content):
     tags = soup.select('a')
     for i in tags:
         i.replace_with(i.get_text())
+
+    # Replace line break with \n
+    line_break = soup.find_all('br')
+    for i in line_break:
+        i.replace_with('\n')
 
     # strip html tags, chr(31) joins text in different html tags
     return soup.get_text('\n').strip()
