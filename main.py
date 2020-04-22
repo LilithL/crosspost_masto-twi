@@ -98,7 +98,7 @@ def tweet_last_toots(mastodon_utils, twi_api, acct):
 
             # Get the medias in the toot
             for media in new_toot['media_attachments']:
-                new_toot_media.append(media['remote_url'])
+                new_toot_media.append(media['url'])
 
             tweet_id = tweet_parser(twi_api, new_toot['content'],
                                     new_toot['spoiler_text'],  tweet_id, new_toot_media)
