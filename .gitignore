@@ -3,5 +3,6 @@ twitter_access_token.secret
 usercred.secret
 clientcred.secret
 toots.sqlite3
+param.conf
 __pycache__/
 .vscode/
