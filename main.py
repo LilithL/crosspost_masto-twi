@@ -73,6 +73,8 @@ def tweet_last_toots(mastodon_utils, twi_api, acct):
     # Access the database, if it fails stop the program
     try:
         database = models_db.Session_db(PARAMS['db_file'])
+        if len(mastodon_utils.scrape_toots(acct.id, None)) < 1:
+            return
     except Exception as e:
         print(e)
         exit()
@@ -129,7 +131,7 @@ def run(conf, delay):
             for mstdn_acct in mastodon_utils.get_following():
                 tweet_last_toots(mastodon_utils, twi_api, mstdn_acct)
         elif PARAMS['is_external_acct'].lower() == 'false':
-            tweet_last_toots(mastodon_utils, twi_api, mastodon_utils.me.id)
+            tweet_last_toots(mastodon_utils, twi_api, mastodon_utils.me)
         else:
             raise Exception(
                 "Parameter 'is_external_acct' is undefined in config file")
