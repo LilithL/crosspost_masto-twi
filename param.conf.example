@@ -13,7 +13,7 @@ twi_cw_default = [{}]\n\n
 last_toot_file = lastToot.json
 
 # Tells wether to crosspost the following accounts (true) or itself (false)
-is_external_acct = True
+is_external_acct = false
 
 # The path to the twitter api tokens
 twi_accesstoken_file = twitter_access_token.secret
