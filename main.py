@@ -62,13 +62,13 @@ def tweet_parser(twi_api, texte, toot_cont_warn, last_tweet_id=None, toot_media=
                 last_tweet_id = twi_api.PostUpdate(status=formated_cw + contenu, in_reply_to_status_id=last_tweet_id,
                                                    verify_status_length=False, media=toot_media).id
             except Exception as e:
-                print(e)
+                print("Erreur, prochain essais dans 3 secondes : ", e)
                 time.sleep(3)
                 try:
                     last_tweet_id = twi_api.PostUpdate(status=formated_cw + contenu, in_reply_to_status_id=last_tweet_id,
                                                        verify_status_length=False, media=toot_media).id
                 except Exception as e:
-                    print(e)
+                    print("Erreur, pas de nouvelles tentatives: ", e)
                     return
     return last_tweet_id
 
