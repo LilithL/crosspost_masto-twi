@@ -48,15 +48,9 @@ def tweet_parser(twi_api, texte, toot_cont_warn, last_tweet_id=None, toot_media=
     else:
         formated_cw = ""
 
-    # Calculate the max link size depending on the number of medias
-    if len(toot_media) > 0:
-        url_lenght = len(toot_media) * twi_api.GetShortUrlLength(https=True)
-    else:
-        url_lenght = 0
-
     if not any(word in toot_cont_warn.lower() for word in PARAMS['no_cp_indicators'].split(',')):
         texte = Masto_crosspost_utils.process_toot_to_chunks(
-            texte, int(PARAMS['twi_limit']) - len(formated_cw) - url_lenght)
+            texte, int(PARAMS['twi_limit']) - len(formated_cw))
         for contenu in texte:
             try:
                 last_tweet_id = twi_api.PostUpdate(status=formated_cw + contenu, in_reply_to_status_id=last_tweet_id,
