@@ -114,8 +114,9 @@ def run(conf, delay):
     """
     read_conf(conf)
     usercred_masto = import_json_file(PARAMS['masto_usercred_file'])
+    clientcred_masto = import_json_file(PARAMS['masto_clientcred_file'])
     mastodon_utils = Masto_crosspost_utils.MastoCrosspostUtils(
-        PARAMS['masto_clientcred_file'], usercred_masto['token'], usercred_masto['url'])
+        clientcred_masto['id'], clientcred_masto['secret'], usercred_masto['token'], usercred_masto['url'])
 
     accesstoken_twitter = import_json_file(PARAMS['twi_accesstoken_file'])
     consumerkey_twitter = import_json_file(PARAMS['twi_consumerkey_file'])
