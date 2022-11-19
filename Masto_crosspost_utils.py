@@ -6,11 +6,11 @@ from urllib.parse import urlparse
 
 class MastoCrosspostUtils:
 
-    def __init__(self, client_id, client_secret, access_token_key, instance_url):
+    def __init__(self, client_id, client_secret, access_token, instance_url):
         self.mastodon_api = Mastodon(
-            client_id=clientcred_key,
-            client_secret=client_secret
-            access_token=access_token_key,
+            client_id,
+            client_secret,
+            access_token,
             api_base_url=instance_url
         )
         self.me = self.mastodon_api.account_verify_credentials()
